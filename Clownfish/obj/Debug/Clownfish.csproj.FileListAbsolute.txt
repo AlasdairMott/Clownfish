@@ -1,0 +1,7 @@
+C:\Users\alasd\source\repos\ghSelect\Clownfish\bin\Clownfish.dll
+C:\Users\alasd\source\repos\ghSelect\Clownfish\bin\Clownfish.pdb
+C:\Users\alasd\source\repos\ghSelect\Clownfish\obj\Debug\Clownfish.csprojAssemblyReference.cache
+C:\Users\alasd\source\repos\ghSelect\Clownfish\obj\Debug\Clownfish.dll
+C:\Users\alasd\source\repos\ghSelect\Clownfish\obj\Debug\Clownfish.pdb
+C:\Users\alasd\source\repos\ghSelect\Clownfish\obj\Debug\Clownfish.Properties.Resources.resources
+C:\Users\alasd\source\repos\ghSelect\Clownfish\obj\Debug\Clownfish.csproj.GenerateResource.cache
