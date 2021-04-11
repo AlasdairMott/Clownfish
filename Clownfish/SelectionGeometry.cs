@@ -8,11 +8,12 @@ using Rhino.Geometry;
 
 namespace Clownfish
 {
-	class SelectionGeometry
+	public class SelectionGeometry
 	{
 		public Brep brep;
 		public Mesh brep_renderMesh;
 		public bool selected;
+		public double parameter;
 		
 		private ClownfishComponent parent;
 
@@ -35,7 +36,8 @@ namespace Clownfish
 
 		private void OnMouseDown(object sender, MouseSelectHandler e)
 		{
-			if (selected && !e.remove) return;
+			//if (selected && !e.remove) return;
+			//else if (!selected && e.remove) return;
 
 			Point2d mouse_pt = new Point2d(e.point.X, e.point.Y);
 			
@@ -51,18 +53,22 @@ namespace Clownfish
 
 			Ray3d r = new Rhino.Geometry.Ray3d(camera_pt, direction);
 
-			p = Rhino.Geometry.Intersect.Intersection.MeshRay(brep_renderMesh, r);
-			if (p > 0.0)
+			parameter = Rhino.Geometry.Intersect.Intersection.MeshRay(brep_renderMesh, r);
+			if (parameter > 0.0)
 			{
-				if (e.remove)
-				{
-					selected = false;
-					Rhino.RhinoApp.WriteLine("Removed Geometry");
-				}
-				else {
-					selected = true;
-					Rhino.RhinoApp.WriteLine("Selected Geometry");
-				}
+				parent.mouseSelector.selected.Add(this);
+
+				//Rhino.RhinoApp.WriteLine("Selected Geometry");
+
+				//if (e.remove)
+				//{
+				//	//selected = false;
+				//	//Rhino.RhinoApp.WriteLine("Removed Geometry");
+				//}
+				//else {
+				//	//selected = true;
+				//	//Rhino.RhinoApp.WriteLine("Selected Geometry");
+				//}
 			}
 		}
 	}

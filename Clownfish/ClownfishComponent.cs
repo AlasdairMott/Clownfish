@@ -16,8 +16,9 @@ namespace Clownfish
 		public MouseSelector mouseSelector;
 		private List<int> indices;
 		private List<SelectionGeometry> selectionGeometries;
-		private List<Brep> selectionBreps;
+		public bool SelectionRetrigger;
 		private Rhino.Display.DisplayMaterial display_material;
+
 		/// <summary>
 		/// Each implementation of GH_Component must provide a public 
 		/// constructor without any arguments.
@@ -33,7 +34,7 @@ namespace Clownfish
 			indices = new List<int>();
 			mouseSelector = new MouseSelector(this);
 			selectionGeometries = new List<SelectionGeometry>();
-			selectionBreps = new List<Brep>();
+			SelectionRetrigger = false;
 			display_material = new Rhino.Display.DisplayMaterial(System.Drawing.Color.Yellow);
 		}
 
@@ -44,7 +45,6 @@ namespace Clownfish
 		{
 			pManager.AddBrepParameter("brep", "B", "breps to include in selection", GH_ParamAccess.list);
 			pManager.AddBooleanParameter("Select", "S", "Select points", GH_ParamAccess.item);
-			//pManager.AddBooleanParameter("Force Clear", "C", "Force clear output", GH_ParamAccess.item);
 		}
 
 		/// <summary>
@@ -62,39 +62,33 @@ namespace Clownfish
 		/// to store data in output parameters.</param>
 		protected override void SolveInstance(IGH_DataAccess DA)
 		{
-			//bool clear = false;
-			//DA.GetData("Force Clear", ref clear);
-			//if (clear) {
-			//	selectionBreps.Clear();
-			//	selectionGeometries.Clear();
-			//}
-
-			
-
 			bool run = false;
 			DA.GetData("Select", ref run);
-			if (run)	mouseSelector.Enabled = true;
-			else		mouseSelector.Enabled = false;
-
+			if (run) mouseSelector.Enabled = true;
+			else 
+			{
+				mouseSelector.Enabled = false;
+				SelectionRetrigger = true;
+			}
+			
 			List<Brep> breps = new List<Brep>();
 			DA.GetDataList("brep", breps);
 
-			//selectionGeometries.Clear();
-			//foreach (Brep b in breps) {
-			//	if (selectionBreps.Contains(b)) continue;
-			//	else {
-			//		selectionBreps.Add(b);
-			//		selectionGeometries.Add(new SelectionGeometry(b, this));
-			//	}
-			//}
-			if (breps.Count != selectionGeometries.Count) {
+			if (breps.Count == 0) return;
+
+			if (!SelectionRetrigger) {
+				//first unsubscribe the selectionGeometries in the list
+				foreach (SelectionGeometry sG in selectionGeometries) {
+					sG.Unsubscribe();
+				}
+
+				//Clear the list and create the selection geometries
 				selectionGeometries.Clear();
 				foreach (Brep b in breps)
 				{
 					selectionGeometries.Add(new SelectionGeometry(b, this));
 				}
 			}
-			
 
 			indices.Clear();
 			for (int i = 0; i < selectionGeometries.Count; i++)
@@ -104,6 +98,9 @@ namespace Clownfish
 			}
 
 			DA.SetDataList("index", indices);
+
+			if (mouseSelector.Enabled) SelectionRetrigger = false;
+
 		}
 
 		public override void DrawViewportMeshes(IGH_PreviewArgs args) 
@@ -111,11 +108,13 @@ namespace Clownfish
 			for (int i = 0; i < selectionGeometries.Count; i++)
 			{
 				var sG = selectionGeometries[i];
-				if (sG.selected) {
+				if (sG.selected) 
+				{
 					args.Display.DrawMeshShaded(sG.brep_renderMesh, display_material);
 				}
 			}
 		}
+
 		/// <summary>
 		/// Provides an Icon for every component that will be visible in the User Interface.
 		/// Icons need to be 24x24 pixels.

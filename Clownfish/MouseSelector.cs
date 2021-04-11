@@ -14,6 +14,7 @@ namespace Clownfish
 		public event EventHandler<MouseSelectHandler> MousePressed;
 		private ClownfishComponent parent;
 
+		public List<SelectionGeometry> selected;
 		public MouseSelector(ClownfishComponent p) { parent = p; } 
 
 		protected override void OnMouseDown(MouseCallbackEventArgs e)
@@ -22,11 +23,32 @@ namespace Clownfish
 
 			if (e.MouseButton == MouseButton.Right) return;
 
+			selected = new List<SelectionGeometry>();
+
 			MouseSelectHandler mouseSelect = new MouseSelectHandler(e.View.ActiveViewport, e.ViewportPoint, e.CtrlKeyDown);
 			MousePressed?.Invoke(this, mouseSelect);
-			parent.ExpireSolution(true);
 
-			e.View.Redraw();
+			if (selected.Count > 0) { 
+				double min = System.Double.PositiveInfinity;
+				int index_closest = 0;
+				for (int i = 0; i < selected.Count; i++) {
+					//Rhino.RhinoApp.WriteLine("parameter {0}", selected[i].parameter);
+					if (selected[i].parameter < min) {
+						min = selected[i].parameter;
+						index_closest = i;
+					}
+					
+				}
+
+				if (!e.CtrlKeyDown)	selected[index_closest].selected = true;
+				else				selected[index_closest].selected = false;
+
+				parent.SelectionRetrigger = true;
+				parent.ExpireSolution(true);
+				e.View.Redraw();
+
+			}
+			
 		}
 	}
 
