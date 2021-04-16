@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
@@ -16,8 +16,11 @@ namespace Clownfish
 		public MouseSelector mouseSelector;
 		private List<int> indices;
 		private List<SelectionGeometry> selectionGeometries;
-		public bool SelectionRetrigger;
+		public bool selectionRetrigger;
+		public bool selectThroughObjects;
 		private Rhino.Display.DisplayMaterial display_material;
+
+
 
 		/// <summary>
 		/// Each implementation of GH_Component must provide a public 
@@ -34,7 +37,8 @@ namespace Clownfish
 			indices = new List<int>();
 			mouseSelector = new MouseSelector(this);
 			selectionGeometries = new List<SelectionGeometry>();
-			SelectionRetrigger = false;
+			selectionRetrigger = false;
+			selectThroughObjects = false;
 			display_material = new Rhino.Display.DisplayMaterial(System.Drawing.Color.Yellow);
 		}
 
@@ -68,7 +72,7 @@ namespace Clownfish
 			else 
 			{
 				mouseSelector.Enabled = false;
-				SelectionRetrigger = true;
+				selectionRetrigger = true;
 			}
 			
 			List<Brep> breps = new List<Brep>();
@@ -76,7 +80,7 @@ namespace Clownfish
 
 			if (breps.Count == 0) return;
 
-			if (!SelectionRetrigger) {
+			if (!selectionRetrigger) {
 				//first unsubscribe the selectionGeometries in the list
 				foreach (SelectionGeometry sG in selectionGeometries) {
 					sG.Unsubscribe();
@@ -99,8 +103,16 @@ namespace Clownfish
 
 			DA.SetDataList("index", indices);
 
-			if (mouseSelector.Enabled) SelectionRetrigger = false;
+			if (mouseSelector.Enabled) selectionRetrigger = false;
 
+		}
+
+		public override void RemovedFromDocument(GH_Document document)
+		{
+			base.RemovedFromDocument(document);
+			mouseSelector.Enabled = false;
+			
+			//Rhino.RhinoApp.WriteLine("Removed from document");
 		}
 
 		public override void DrawViewportMeshes(IGH_PreviewArgs args) 
@@ -113,6 +125,30 @@ namespace Clownfish
 					args.Display.DrawMeshShaded(sG.brep_renderMesh, display_material);
 				}
 			}
+		}
+
+		protected override void AppendAdditionalComponentMenuItems(System.Windows.Forms.ToolStripDropDown menu)
+		{
+			base.AppendAdditionalComponentMenuItems(menu);
+			Menu_AppendItem(menu, "Select Through Objects", Menu_SelectThroughObjects, true, selectThroughObjects);
+		}
+
+		private void Menu_SelectThroughObjects(object sender, EventArgs e)
+		{
+			selectThroughObjects = !selectThroughObjects;
+		}
+
+		public override bool Write(GH_IWriter writer)
+		{
+			writer.SetBoolean("selectThroughObjects", this.selectThroughObjects);
+			return base.Write(writer);
+		}
+
+		public override bool Read(GH_IReader reader)
+		{
+			this.selectThroughObjects = false;
+			reader.TryGetBoolean("selectThroughObjects", ref this.selectThroughObjects);
+			return base.Read(reader);
 		}
 
 		/// <summary>

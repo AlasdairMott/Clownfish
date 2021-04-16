@@ -27,8 +27,9 @@ namespace Clownfish
 
 			MouseSelectHandler mouseSelect = new MouseSelectHandler(e.View.ActiveViewport, e.ViewportPoint, e.CtrlKeyDown);
 			MousePressed?.Invoke(this, mouseSelect);
-
-			if (selected.Count > 0) { 
+			//Rhino.RhinoApp.WriteLine("Mouse down");
+			if (selected.Count > 0) {
+				
 				double min = System.Double.PositiveInfinity;
 				int index_closest = 0;
 				for (int i = 0; i < selected.Count; i++) {
@@ -36,14 +37,19 @@ namespace Clownfish
 					if (selected[i].parameter < min) {
 						min = selected[i].parameter;
 						index_closest = i;
-					}
-					
+					}	
 				}
 
-				if (!e.CtrlKeyDown)	selected[index_closest].selected = true;
-				else				selected[index_closest].selected = false;
+				if (!e.CtrlKeyDown) {
+					if (parent.selectThroughObjects == true) for (int i = 0; i < selected.Count; i++) selected[i].selected = true;
+					else selected[index_closest].selected = true;
+				} 
+				else {
+					if (parent.selectThroughObjects == true) for (int i = 0; i < selected.Count; i++) selected[i].selected = false;
+					selected[index_closest].selected = false;
+				} 
 
-				parent.SelectionRetrigger = true;
+				parent.selectionRetrigger = true;
 				parent.ExpireSolution(true);
 				e.View.Redraw();
 
