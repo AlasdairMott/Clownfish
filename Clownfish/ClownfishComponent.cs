@@ -16,8 +16,13 @@ namespace Clownfish
 		public MouseSelector mouseSelector;
 		private List<int> indices;
 		private List<SelectionGeometry> selectionGeometries;
+		public Stack<SelectionGeometry> selectionGeometriesStack;
 		public bool selectionRetrigger;
+
 		public bool selectThroughObjects;
+		public bool orderSelection;
+		public bool selectFaces;
+
 		private Rhino.Display.DisplayMaterial display_material;
 
 
@@ -37,8 +42,13 @@ namespace Clownfish
 			indices = new List<int>();
 			mouseSelector = new MouseSelector(this);
 			selectionGeometries = new List<SelectionGeometry>();
-			selectionRetrigger = false;
+			selectionGeometriesStack = new Stack<SelectionGeometry>();
+			selectionRetrigger = true;
+			
 			selectThroughObjects = false;
+			orderSelection = true;
+			selectFaces = false;
+
 			display_material = new Rhino.Display.DisplayMaterial(System.Drawing.Color.Yellow);
 		}
 
@@ -80,7 +90,7 @@ namespace Clownfish
 
 			if (breps.Count == 0) return;
 
-			if (!selectionRetrigger) {
+			if (!selectionRetrigger || selectionGeometries.Count != breps.Count) {
 				//first unsubscribe the selectionGeometries in the list
 				foreach (SelectionGeometry sG in selectionGeometries) {
 					sG.Unsubscribe();
@@ -95,10 +105,23 @@ namespace Clownfish
 			}
 
 			indices.Clear();
-			for (int i = 0; i < selectionGeometries.Count; i++)
+			if (orderSelection)
 			{
-				var sG = selectionGeometries[i];
-				if (sG.selected) indices.Add(i);
+				for (int i = 0; i < selectionGeometries.Count; i++)
+				{
+					var sG = selectionGeometries[i];
+					if (sG.selected) indices.Add(i);
+				}
+			}
+			else 
+			{
+				for (int i = 0; i < selectionGeometriesStack.Count; i++) 
+				{
+					var sG = selectionGeometriesStack.ToArray()[i];
+					int index = selectionGeometries.IndexOf(sG);
+					indices.Add(index);
+				}
+
 			}
 
 			DA.SetDataList("index", indices);
@@ -111,8 +134,6 @@ namespace Clownfish
 		{
 			base.RemovedFromDocument(document);
 			mouseSelector.Enabled = false;
-			
-			//Rhino.RhinoApp.WriteLine("Removed from document");
 		}
 
 		public override void DrawViewportMeshes(IGH_PreviewArgs args) 
@@ -131,23 +152,46 @@ namespace Clownfish
 		{
 			base.AppendAdditionalComponentMenuItems(menu);
 			Menu_AppendItem(menu, "Select Through Objects", Menu_SelectThroughObjects, true, selectThroughObjects);
+			Menu_AppendItem(menu, "Order Selection", Menu_OrderSelection, true, orderSelection);
+			Menu_AppendItem(menu, "Select Faces", Menu_SelectFaces, true, selectFaces);
+			Menu_AppendColourPicker(menu, display_material.Diffuse, Menu_DisplayColour);
 		}
 
-		private void Menu_SelectThroughObjects(object sender, EventArgs e)
+		private void Menu_SelectThroughObjects(object sender, EventArgs e) { selectThroughObjects = !selectThroughObjects;}
+
+		private void Menu_OrderSelection(object sender, EventArgs e){ 
+			orderSelection = !orderSelection;
+			ExpireSolution(true);
+		}
+
+		private void Menu_SelectFaces(object sender, EventArgs e) 
 		{
-			selectThroughObjects = !selectThroughObjects;
+			selectFaces = !selectFaces;
+			ExpireSolution(true);
+		}
+
+		private void Menu_DisplayColour(object sender, Grasshopper.GUI.Base.GH_ColourPickerEventArgs e)
+		{
+			display_material.Diffuse = e.Colour;
 		}
 
 		public override bool Write(GH_IWriter writer)
 		{
 			writer.SetBoolean("selectThroughObjects", this.selectThroughObjects);
+			writer.SetBoolean("orderSelection", this.orderSelection);
+			writer.SetBoolean("selectFaces", this.selectFaces);
+			writer.SetDrawingColor("DisplayColour", this.display_material.Diffuse);
 			return base.Write(writer);
 		}
 
 		public override bool Read(GH_IReader reader)
 		{
-			this.selectThroughObjects = false;
 			reader.TryGetBoolean("selectThroughObjects", ref this.selectThroughObjects);
+			reader.TryGetBoolean("orderSelection", ref this.orderSelection);
+			reader.TryGetBoolean("selectFaces", ref this.selectFaces);
+			System.Drawing.Color c = System.Drawing.Color.Yellow;
+			reader.TryGetDrawingColor("DisplayColour", ref c);
+			this.display_material.Diffuse = c;
 			return base.Read(reader);
 		}
 

@@ -27,28 +27,62 @@ namespace Clownfish
 
 			MouseSelectHandler mouseSelect = new MouseSelectHandler(e.View.ActiveViewport, e.ViewportPoint, e.CtrlKeyDown);
 			MousePressed?.Invoke(this, mouseSelect);
-			//Rhino.RhinoApp.WriteLine("Mouse down");
+			
 			if (selected.Count > 0) {
-				
-				double min = System.Double.PositiveInfinity;
-				int index_closest = 0;
-				for (int i = 0; i < selected.Count; i++) {
-					//Rhino.RhinoApp.WriteLine("parameter {0}", selected[i].parameter);
-					if (selected[i].parameter < min) {
-						min = selected[i].parameter;
-						index_closest = i;
-					}	
+				if (!parent.selectFaces)
+				{
+					double min = System.Double.PositiveInfinity;
+					int index_closest = 0;
+					for (int i = 0; i < selected.Count; i++)
+					{
+						if (selected[i].parameter < min)
+						{
+							min = selected[i].parameter;
+							index_closest = i;
+						}
+					}
+
+					if (!e.CtrlKeyDown)
+					{
+						if (parent.selectThroughObjects == true) for (int i = 0; i < selected.Count; i++)
+							{
+								selected[i].selected = true;
+								parent.selectionGeometriesStack.Push(selected[i]);
+							}
+						else
+						{
+							selected[index_closest].selected = true;
+							parent.selectionGeometriesStack.Push(selected[index_closest]);
+						}
+
+						
+					}
+					else
+					{
+						if (parent.selectThroughObjects == true) for (int i = 0; i < selected.Count; i++)
+							{
+								selected[i].selected = false;
+
+								List<SelectionGeometry> selected_list = parent.selectionGeometriesStack.ToList<SelectionGeometry>();
+								selected_list.Remove(selected[i]);
+								parent.selectionGeometriesStack = new Stack<SelectionGeometry>(selected_list);
+							}
+						else
+						{
+							selected[index_closest].selected = false;
+
+							List<SelectionGeometry> selected_list = parent.selectionGeometriesStack.ToList<SelectionGeometry>();
+							selected_list.Remove(selected[index_closest]);
+							parent.selectionGeometriesStack = new Stack<SelectionGeometry>(selected_list);
+						}
+						
+					}
 				}
+				else 
+				{ 
 
-				if (!e.CtrlKeyDown) {
-					if (parent.selectThroughObjects == true) for (int i = 0; i < selected.Count; i++) selected[i].selected = true;
-					else selected[index_closest].selected = true;
-				} 
-				else {
-					if (parent.selectThroughObjects == true) for (int i = 0; i < selected.Count; i++) selected[i].selected = false;
-					selected[index_closest].selected = false;
-				} 
-
+				}
+				
 				parent.selectionRetrigger = true;
 				parent.ExpireSolution(true);
 				e.View.Redraw();
